@@ -77,7 +77,7 @@ Compara los jugadores sancionados con las alineaciones de jornadas posteriores p
 - Se usa `SQLAlchemy` para interactuar con la base de datos.
 
 ## 📝 Autor
-**Pablo Marc**
+**Pmarc21**
 
 ---
 ¡Cualquier mejora o sugerencia es bienvenida! 🚀
