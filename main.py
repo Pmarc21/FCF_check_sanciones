@@ -96,6 +96,9 @@ def get_match_lineups(hrefs, matchday):
 
 def save_suspended_players_in_db(all_suspended_players):
     session = Session()
+    session.query(SuspendedPlayer).delete()
+    session.query(MatchdayPlayers).delete()
+    session.commit()
     for matchday, data in all_suspended_players.items():
         for player_name, data_player in data.items():
             if data_player.get("sanction_matches") != 0 and player_name != "":
