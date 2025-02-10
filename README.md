@@ -1,4 +1,4 @@
-# Suspended Players Checker
+# Check de jugadores suspendidos FCF
 
 Este proyecto extrae información sobre jugadores sancionados y los compara con las alineaciones de las jornadas posteriores para verificar si han jugado cuando no debían.
 

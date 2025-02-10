@@ -10,9 +10,11 @@ class SuspendedPlayer(Base):
     sanction_matches = Column(Integer)
     team = Column(String)
     matchday = Column(Integer)
+    league = Column(String)
+    group = Column(String)
 
 class MatchdayPlayers(Base):
-    __tablename__ = 'MatchdayPlayers'
+    __tablename__ = 'matchday_players'
     id = Column(Integer, primary_key=True)
     name = Column(String)
     matchday = Column(Integer)
