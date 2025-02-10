@@ -34,8 +34,16 @@ def get_suspended_players(matchday):
                     "sanction_matches": sanction_matches,
                     "team" : team_name,
                 }
-    # print(suspended_players)
     return suspended_players
+
+def get_all_suspended_players():
+    all_suspended_players = {}
+
+    for matchday in generate_matchdays():
+        suspended_players = get_suspended_players(matchday)
+        all_suspended_players.update(suspended_players)
+    
+    return all_suspended_players
 
 def get_hrefs_matchdays(matchday):
     matchdays_url = f"https://www.fcf.cat/resultats/2425/futbol-sala/lliga-segona-divisio-catalana-futbol-sala/bcn-gr-3/{matchday}"
@@ -62,59 +70,47 @@ def get_match_lineups(hrefs, matchday):
             players.extend(link.text.strip() for link in columns if link.get('href') and "jugador" in link['href'])
     return list(set(players)) #all players that have played in the matchday
 
+def save_suspended_players_in_db(all_suspended_players):
+    session = Session()
+    for matchday, data in all_suspended_players.items():
+        for player_name, data_player in data.items():
+            if data_player.get("sanction_matches") != 0 and player_name != "":
+                suspended_player = SuspendedPlayer(
+                    matchday=matchday.split("-")[1],
+                    name=player_name,
+                    sanction_matches=data_player.get("sanction_matches"),
+                    team=data_player.get("team")
+                )
+                session.add(suspended_player)
+                session.commit()
+
 def check_suspended_players():
-    all_suspended_players = {}
+    player_suspensions = {}
     all_players_in_lineups = {}
     session = Session()
-
-    for matchday in generate_matchdays():
-        suspended_players = get_suspended_players(matchday)
-        all_suspended_players.update(suspended_players)
-        # print(all_suspended_players)
-        for player, data in all_suspended_players.items():
-            suspended_player = SuspendedPlayer(
-            name=player,
-            sanction_matches=data.get("sanction_matches"),
-            team=data.get("team")
-            )
-            session.add(suspended_player)
-            session.commit()
-        hrefs_matchday = get_hrefs_matchdays(matchday)
-        players_in_lineups = get_match_lineups(hrefs_matchday, matchday)
-        all_players_in_lineups[matchday] = players_in_lineups
-        # print(all_players_in_lineups)
-
-    player_suspensions = {}
-
-    
-    
-    # irregularities = []
-    # for match in matchdays:
-    #     match_date = match["date"]
-    #     lineup_url = "https://www.fcf.cat" + match["lineup_url"]
-    #     response = requests.get(lineup_url)
-    #     soup = BeautifulSoup(response.text, 'html.parser')
-        
-    #     for player in player_suspensions.keys():
-    #         if player_suspensions[player]["matches_remaining"] > 0:
-    #             for squad_player in soup.select(".player-name"):  # Ajustar selector
-    #                 if squad_player.text.strip() == player:
-    #                     irregularities.append(f"{player} jugó el {match_date} estando sancionado por {suspended_players[player]['sanction_matches']} partidos desde {suspended_players[player]['sanction_date']}.")
-    #             player_suspensions[player]["matches_remaining"] -= 1
-    
-    # return irregularities
+    suspended_players = session.query(SuspendedPlayer).all()
+    for suspended_player in suspended_players:
+        suspended_matchdays = generate_suspended_matchdays(suspended_player.matchday + 1, suspended_player.matchday + suspended_player.sanction_matches)
+        for matchday in suspended_matchdays:
+            hrefs_matchday = get_hrefs_matchdays(matchday)
+            players_in_lineups = get_match_lineups(hrefs_matchday, matchday)
+            # all_players_in_lineups[matchday] = players_in_lineups
+            if suspended_player.name in players_in_lineups:
+                print(f"Este jugador ha jugado cuando no debía! El jugador es {suspended_player.name} del equipo {suspended_player.team}. Fue sancionado en la jornada {suspended_player.matchday} de {suspended_player.sanction_matches} partidos y está jugando en la {matchday}")
 
 def generate_matchdays():
     matchdays = []
     for i in range(1,27):
         matchdays.append(f"jornada-{i}")
     return matchdays
-    
+
+def generate_suspended_matchdays(start, end):
+    matchdays = []
+    for i in range(start,end+1):
+        matchdays.append(f"jornada-{i}")
+    return matchdays
+
 if __name__ == "__main__":
-    issues = check_suspended_players()
-    if issues:
-        print("Jugadores sancionados que jugaron irregularmente:")
-        for issue in issues:
-            print(issue)
-    else:
-        print("No se encontraron irregularidades.")
+    # issues = get_all_suspended_players()
+    # save_suspended_players_in_db(issues)
+    check_suspended_players()
